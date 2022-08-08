@@ -170,7 +170,6 @@ class Sample(Resource):
 
 
 #file upload 
-import logic
 
 #resources (end points)
 
