@@ -1,7 +1,7 @@
 #Package imports
 from flask import Flask
 from flask_restful import Resource, Api,reqparse
-
+from flask_cors import CORS
 #local imports
 from models import Project , db ,Samples
 
@@ -9,6 +9,7 @@ from models import Project , db ,Samples
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data/test.db'
 api = Api(app)
+CORS(app)
 db.init_app(app)
 db.app = app
 app.secret_key ='shivam'
