@@ -1,8 +1,12 @@
 #imports
+from ast import NamedExpr
+from email.mime import image
+from unicodedata import name
 from flask_sqlalchemy import SQLAlchemy
+
+from sqlalchemy.dialects.oracle import BLOB
 #configs
 db = SQLAlchemy()
-
 
 #project model
 class Project(db.Model):
@@ -10,9 +14,10 @@ class Project(db.Model):
     name = db.Column(db.String(80), unique=True, nullable=False)
     aqurename = db.Column(db.String)
     samples = db.relationship('Samples', backref='project', lazy=True)
+    csvLog = db.relationship('CsvLog', backref='project', lazy=True)
+    result = db.relationship('Result', backref='project', lazy=True)
     def __repr__(self):
         return '<Projectname %r>' % self.name
-
 #Sample models
 class Samples(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,3 +41,21 @@ class Samples(db.Model):
     Carbondioxide =db.Column(db.Numeric(precision=8, asdecimal=False, decimal_return_scale=None))
     def __repr__(self):
         return '<Sample%r>' % self.name
+#class for the result model
+class CsvLog(db.Model):
+    id=db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'),nullable=False)
+    location = db.Column(db.String , nullable=False)
+    def __repr__(self):
+        return '<CsvLog%r>' % self.project_id
+
+
+class Result(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'),nullable=False)
+    image = db.Column(BLOB, nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+    def __repr__(self):
+        return '<Result%r>' % self.name
+
+

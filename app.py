@@ -2,9 +2,14 @@
 from flask import Flask
 from flask_restful import Resource, Api,reqparse
 from flask_cors import CORS
+import os
+import werkzeug
+import pandas as pd
+import json
+from wqchartpy import triangle_piper
 #local imports
-from models import Project , db ,Samples
-
+from models import Project , db ,Samples , CsvLog , Result
+from graph import clustering , format_data ,cleandata
 #Configs 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data/test.db'
@@ -13,9 +18,11 @@ CORS(app)
 db.init_app(app)
 db.app = app
 app.secret_key ='shivam'
-UPLOAD_FOLDER = (r"C:\Users\shiva\OneDrive\Desktop\Hydrateq-backend\uploads")
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-ALLOWED_EXTENSIONS = set(['txt', 'pdf','csv'])
+basedir = os.path.abspath(os.path.dirname(__file__))
+uploads_path = os.path.join(basedir, 'uploads') 
+# UPLOAD_FOLDER = ('static/uploads')
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 #parse object for create project
 create_project_parser = reqparse.RequestParser()
 create_project_parser.add_argument("name")
@@ -40,12 +47,19 @@ create_sample_parser.add_argument("aluminium")
 create_sample_parser.add_argument("Trioxidosilicate")
 create_sample_parser.add_argument("Carbondioxide")
 
+
+
+csv_parser =reqparse.RequestParser()
+csv_parser.add_argument("file",type=werkzeug.datastructures.FileStorage,location='files')
+
 #show alll project ans create new project
+
+
 class WaterData(Resource):
     def get(self):
         projects = Project.query.all()
         if len(projects) == 0:
-            return {projects : 0},200
+            return {"projects" : 0},200
         else:
             project_info =[]
             for project in projects:
@@ -168,17 +182,35 @@ class Sample(Resource):
                 "Carbondioxide":sample.Carbondioxide
 
             },200
-
-
-#file upload 
-
-#resources (end points)
-
+class csv_upload(Resource):
+    def post(self,id):
+        args = csv_parser.parse_args()
+        file = args.get("file")
+        if file:
+            file.save(os.path.join(uploads_path ,"id"+file.filename))
+            location= os.path.join(uploads_path ,"id"+file.filename)
+            csv=CsvLog(location=location,project_id=id)
+            db.session.add(csv)
+            db.session.commit()
+            raw_df = pd.read_csv(location)
+            data=cleandata(raw_df)[0]
+            res=data.to_json(orient='index')
+            # readydata = format_data(raw_df)
+            # fig = triangle_piper.plot(readydata, unit='mg/L', figname='triangle Piper diagram', figformat='jpg')
+            # fig.savefig(os.path.join(uploads_path ,"id"+file.filename+".jpg"))
+            return json.loads(res)
+        else:
+            return{
+                "message" : "no file uploaded"
+            }
+    def get(self):
+        pass
 api.add_resource(WaterData, '/')
 api.add_resource(Projectsingle, '/project/<id>')
 api.add_resource(Sample, '/sample/<id>')
+api.add_resource(csv_upload, '/csv/<id>','/csv')
 
-
+from graph import clustering , format_data ,cleandata
 # run app 
 if __name__ == '__main__':
     app.run(debug=True)
