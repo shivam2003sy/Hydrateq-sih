@@ -9,7 +9,7 @@ import json
 from wqchartpy import triangle_piper
 #local imports
 from models import Project , db ,Samples , CsvLog , Result
-from graph import clustering , format_data ,cleandata
+from graph import clustering ,cleandata
 #Configs 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data/test.db'
@@ -195,8 +195,8 @@ class csv_upload(Resource):
             raw_df = pd.read_csv(location)
             data=cleandata(raw_df)[0]
             res=data.to_json(orient='index')
-            # readydata = format_data(raw_df)
-            # fig = triangle_piper.plot(readydata, unit='mg/L', figname='triangle Piper diagram', figformat='jpg')
+            readydata = clustering(raw_df)
+            triangle_piper.plot(readydata, unit='mg/L', figname='triangle Piper diagram', figformat='jpg')
             # fig.savefig(os.path.join(uploads_path ,"id"+file.filename+".jpg"))
             return json.loads(res)
         else:
@@ -210,7 +210,6 @@ api.add_resource(Projectsingle, '/project/<id>')
 api.add_resource(Sample, '/sample/<id>')
 api.add_resource(csv_upload, '/csv/<id>','/csv')
 
-from graph import clustering , format_data ,cleandata
 # run app 
 if __name__ == '__main__':
     app.run(debug=True)

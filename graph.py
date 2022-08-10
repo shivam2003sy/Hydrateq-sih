@@ -121,14 +121,11 @@ def clustering(raw_df):
     plt.clf()
     # plt.show()
     Y_df['SCI'] = hierarchy.fcluster(Z, max_d, criterion='distance')
-    cluster_ids = Y_df['SCI'].values
+    
     # print('Number of clusters:', n_clusters)
     # print('Samples in each cluster:', cluster_size)
     # print('Total samples:', np.sum(cluster_size))
-    return (Y_df,)
-
-def format_data(raw_df):
-    Y_df =clustering(raw_df)
+    cluster_ids = Y_df['SCI'].values
     format_df = pd.DataFrame()
     format_df['Sample'] = Y_df['ShortID'].map(str) + '_' + Y_df['SY'].map(str) + '_'  + Y_df['SM'].map(str)
     format_df['Label'] = 'C' + Y_df['SCI'].map(str)
@@ -156,8 +153,7 @@ def format_data(raw_df):
     format_df.reset_index(inplace=True, drop=True)
     format_df.to_csv('sample.csv')
     return (format_df)
-url ="https://raw.githubusercontent.com/jyangfsu/WQChartPy/main/data/data_Liu_et_al_2021.csv"
-raw_df = pd.read_csv(url)
+# url ="https://raw.githubusercontent.com/jyangfsu/WQChartPy/main/data/data_Liu_et_al_2021.csv"
+# raw_df = pd.read_csv(url)
 # print(cleandata(raw_df))
 # print(clustering(raw_df))
-# print(format_data(raw_df))
