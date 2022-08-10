@@ -1,12 +1,12 @@
 #Package imports
-from flask import Flask
-from flask_restful import Resource, Api,reqparse
+from flask import Flask ,Response
+from flask_restful import Resource, Api,reqparse 
 from flask_cors import CORS
 import os
 import werkzeug
 import pandas as pd
 import json
-
+import base64
 #local imports
 from models import Project , db ,Samples , CsvLog , Result
 from dataclean import clustering ,cleandata
@@ -21,6 +21,7 @@ db.app = app
 app.secret_key ='shivam'
 basedir = os.path.abspath(os.path.dirname(__file__))
 uploads_path = os.path.join(basedir, 'uploads') 
+current_path = os.getcwd()
 # UPLOAD_FOLDER = ('static/uploads')
 # app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -198,17 +199,34 @@ class csv_upload(Resource):
             res=data.to_json(orient='index')
             readydata = clustering(raw_df)
             piper(readydata, unit='mg/L', figname='trianglePiperdiagram'+id, figformat='jpg')
+            img= open('trianglePiperdiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='trianglePiperdiagram')
+            db.session.add(new_graph)
+            db.session.commit()
             return json.loads(res)
         else:
             return{
                 "message" : "no file uploaded"
             }
-    def get(self):
-        pass
+    # def get(self,id):
+    #     graph = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
+    #     if graph:
+    #         return Response(graph.image, mimetype=graph.mimetype)
+        
+@app.route('/graph/<int:id>')
+def get_img(id):
+    # global imag_file
+    img = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
+    if not img:
+        return 'Img Not Found!', 404
+     
+    # imag_file=f"http://127.0.0.1:5000/2"
+    
+    return Response(img.image, mimetype=img.name)
 api.add_resource(WaterData, '/')
 api.add_resource(Projectsingle, '/project/<id>')
 api.add_resource(Sample, '/sample/<id>')
-api.add_resource(csv_upload, '/csv/<id>','/csv')
+api.add_resource(csv_upload, '/csv/<id>')
 
 # run app 
 if __name__ == '__main__':

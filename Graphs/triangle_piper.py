@@ -335,8 +335,10 @@ def piper(df,
                frameon=False, 
                labelspacing=0.25, handletextpad=0.25)
 
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    uploads_path = os.path.join(basedir, 'figure') 
     # Display the info
-    cwd = os.getcwd()
+    # cwd = os.getcwd()
     # print("Trilinear Piper plot created. Saving it to %s \n" %cwd)
     # Save the figure
     plt.savefig(figname + '.' + figformat, format=figformat, 
