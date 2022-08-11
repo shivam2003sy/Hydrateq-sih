@@ -7,6 +7,7 @@ import werkzeug
 import pandas as pd
 import json
 import base64
+from  wqchartpy  import gibbs
 #local imports
 from models import Project , db ,Samples , CsvLog , Result
 from dataclean import clustering ,cleandata
@@ -65,9 +66,9 @@ class WaterData(Resource):
         else:
             project_info =[]
             for project in projects:
-                project_info.append([project.id,project.name])
+                project_info.append((project.id,project.name,project.aqurename))
             return{
-                "projects" : {"project":project_info }
+                "projects":project_info
             }
     def post(self):
         args = create_project_parser.parse_args()
@@ -203,6 +204,11 @@ class csv_upload(Resource):
             new_graph = Result(project_id=id,image=img ,name='trianglePiperdiagram')
             db.session.add(new_graph)
             db.session.commit()
+            gibbs.plot(readydata, unit='mg/L', figname='gibbsDiagram'+id, figformat='jpg')
+            img= open('gibbsDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='gibbsDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
             return json.loads(res)
         else:
             return{
@@ -213,10 +219,10 @@ class csv_upload(Resource):
     #     if graph:
     #         return Response(graph.image, mimetype=graph.mimetype)
         
-@app.route('/graph/<int:id>')
-def get_img(id):
+@app.route('/graph/<name>/<int:id>')
+def get_img(id,name):
     # global imag_file
-    img = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
+    img = Result.query.filter_by(project_id=id,name=name).first()
     if not img:
         return 'Img Not Found!', 404
      
@@ -227,7 +233,6 @@ api.add_resource(WaterData, '/')
 api.add_resource(Projectsingle, '/project/<id>')
 api.add_resource(Sample, '/sample/<id>')
 api.add_resource(csv_upload, '/csv/<id>')
-
 # run app 
 if __name__ == '__main__':
     app.run(debug=True)
