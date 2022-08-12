@@ -224,8 +224,14 @@ def get_img(id,name):
     # global imag_file
     img = Result.query.filter_by(project_id=id,name=name).first()
     if not img:
-        return 'Img Not Found!', 404
+        return 'Invalid data to generate graph', 404 
      
+
+
+
+
+
+
     # imag_file=f"http://127.0.0.1:5000/2"
     
     return Response(img.image, mimetype=img.name)
