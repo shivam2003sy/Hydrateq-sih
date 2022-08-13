@@ -212,9 +212,10 @@ class csv_upload(Resource):
             return json.loads(res)
         else:
             return{
-                "message" : "no file uploaded"
+                "message" : "no file uploaded directly"
             }
-    # def get(self,id):
+    # def get(self,id)
+
     #     graph = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
     #     if graph:
     #         return Response(graph.image, mimetype=graph.mimetype)
