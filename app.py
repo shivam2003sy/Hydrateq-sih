@@ -186,9 +186,19 @@ class Sample(Resource):
 
             },200
 class csv_upload(Resource):
+    def get(self,id) :
+        place =  CsvLog.query.filter_by(project_id=id).first()
+        if (place):
+            try:
+                df = pd.read_csv("file"+str(id)+".csv")
+                res=df.to_json()
+                return json.loads(res) ,200
+            except FileNotFoundError:
+                return "Upload your data" ,400    
     def post(self,id):
         args = csv_parser.parse_args()
         file = args.get("file")
+        os.remove("file"+str(id)+".csv")
         if file:
             file.save(os.path.join(uploads_path ,id+file.filename))
             location= os.path.join(uploads_path ,id+file.filename)
@@ -209,7 +219,8 @@ class csv_upload(Resource):
             new_graph = Result(project_id=id,image=img ,name='gibbsDiagram')
             db.session.add(new_graph)
             db.session.commit()
-            return json.loads(res)
+            data.to_csv('file'+str(id)+'.csv')
+            return "succes"
         else:
             return{
                 "message" : "no file uploaded"
@@ -225,13 +236,6 @@ def get_img(id,name):
     img = Result.query.filter_by(project_id=id,name=name).first()
     if not img:
         return 'Invalid data to generate graph', 404 
-     
-
-
-
-
-
-
     # imag_file=f"http://127.0.0.1:5000/2"
     
     return Response(img.image, mimetype=img.name)
