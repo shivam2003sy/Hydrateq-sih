@@ -1,4 +1,5 @@
 #Package imports
+import glob
 from flask import Flask ,Response
 from flask_restful import Resource, Api,reqparse 
 from flask_cors import CORS
@@ -7,7 +8,7 @@ import werkzeug
 import pandas as pd
 import json
 import base64
-from  wqchartpy  import gibbs
+from wqchartpy import gibbs,triangle_piper,rectangle_piper,color_piper,durvo,hfed,chadha,schoeller
 #local imports
 from models import Project , db ,Samples , CsvLog , Result
 from dataclean import clustering ,cleandata
@@ -33,15 +34,22 @@ create_project_parser.add_argument("aqurename")
 #parse object for create project
 create_sample_parser =  reqparse.RequestParser()
 create_sample_parser.add_argument("name")
-create_sample_parser.add_argument("place")
+create_sample_parser.add_argument("x")
+create_sample_parser.add_argument("y")
+create_sample_parser.add_argument("long")
+create_sample_parser.add_argument("lat")
+create_sample_parser.add_argument("alk")
 create_sample_parser.add_argument("ph")
 create_sample_parser.add_argument("ph_4")
 create_sample_parser.add_argument("tds")
+create_sample_parser.add_argument("hardness")
 create_sample_parser.add_argument("sodium")
+create_sample_parser.add_argument("potassiumSodium")
 create_sample_parser.add_argument("magnesium")
 create_sample_parser.add_argument("calcium")
 create_sample_parser.add_argument("sulfate")
 create_sample_parser.add_argument("chloride")
+create_sample_parser.add_argument("fluoride")
 create_sample_parser.add_argument("nitrate")
 create_sample_parser.add_argument("carbonate")
 create_sample_parser.add_argument("bicarbonate")
@@ -118,14 +126,22 @@ class Projectsingle(Resource):
             name = args.get("name")
             place =args.get("place",None)
             project_id = id
+            x=args.get("x")
+            y=args.get("y")
+            long=args.get("long")
+            lat=args.get("lat")
+            alk=args.get("alk")
+            hardness=args.get("hardness")
             ph=args.get("ph")
             ph_4=args.get("ph_4")
             tds=args.get("tds")
             sodium=args.get("sodium")
+            potassiumSodium=args.get("potassiumSodium")
             magnesium=args.get("magnesium")
             calcium=args.get("calcium")
             sulfate=args.get("sulfate")
             chloride=args.get("chloride")
+            fluoride=args.get("fluoride")
             nitrate=args.get("nitrate")
             carbonate=args.get("carbonate")
             bicarbonate=args.get("bicarbonate")
@@ -145,7 +161,7 @@ class Projectsingle(Resource):
                     "eror_message" :"Sample Name is required"
                 }
             else:
-                new = Samples(name=name,place=place,project_id = project_id,ph=ph,ph_4=ph_4,tds=tds,sodium=sodium,magnesium=magnesium,calcium=calcium,sulfate=sulfate,chloride=chloride,nitrate=nitrate,carbonate=carbonate,bicarbonate=bicarbonate,iron=iron,aluminium=aluminium,Trioxidosilicate=Trioxidosilicate,Carbondioxide=Carbondioxide)
+                new = Samples(name=name,x=x,y=y,long=long,lat=lat,project_id = project_id,ph=ph,ph_4=ph_4,alk=alk,hardness=hardness,tds=tds,sodium=sodium,potassiumSodium=potassiumSodium,magnesium=magnesium,calcium=calcium,sulfate=sulfate,chloride=chloride,fluoride=fluoride,nitrate=nitrate,carbonate=carbonate,bicarbonate=bicarbonate,iron=iron,aluminium=aluminium,Trioxidosilicate=Trioxidosilicate,Carbondioxide=Carbondioxide)
             db.session.add(new)
             db.session.commit()
             new = Samples.query.filter_by(name = name).first()
@@ -162,20 +178,29 @@ class Projectsingle(Resource):
 # show sigle project 
 class Sample(Resource):
     def get(self,id):
-        sample = Samples.query.get(id)
-        if sample:
+        samples = Samples.query.all()
+        for sample in samples:
             return{
                 "sample_name" :sample.name,
                 "sample_description" : sample.place,
                 "project_id" :sample.project_id,
                 "ph" :sample.ph,
+                "x" :sample.x,
+                "y" :sample.y,
+                "long" :sample.long,
+                "lat" :sample.lat,
                 "phat4degree": sample.ph_4,
+                "alk" :sample.alk,
+                "hardness" :sample.hardness,
+                "tds" :sample.tds,
                 "tds" :sample.tds,
                 "sodium" :sample.sodium,
+                "potassiumSodium" :sample.potassiumSodium,
                 "magnesium" :sample.magnesium,
                 "calcium " :sample.calcium ,
                 "sulfate" :sample.sulfate,
                 "chloride" :sample.chloride,
+                "fluoride" :sample.fluoride,
                 "nitrate" :sample.nitrate,
                 "carbonate" :sample.carbonate,
                 "bicarbonate" :sample.bicarbonate,
@@ -189,6 +214,7 @@ class csv_upload(Resource):
     def post(self,id):
         args = csv_parser.parse_args()
         file = args.get("file")
+        
         if file:
             file.save(os.path.join(uploads_path ,id+file.filename))
             location= os.path.join(uploads_path ,id+file.filename)
@@ -199,16 +225,62 @@ class csv_upload(Resource):
             data=cleandata(raw_df)[0]
             res=data.to_json(orient='index')
             readydata = clustering(raw_df)
+
+            
+
+
+
             piper(readydata, unit='mg/L', figname='trianglePiperdiagram'+id, figformat='jpg')
             img= open('trianglePiperdiagram'+id+'.jpg','rb').read()
             new_graph = Result(project_id=id,image=img ,name='trianglePiperdiagram')
             db.session.add(new_graph)
             db.session.commit()
+
             gibbs.plot(readydata, unit='mg/L', figname='gibbsDiagram'+id, figformat='jpg')
             img= open('gibbsDiagram'+id+'.jpg','rb').read()
             new_graph = Result(project_id=id,image=img ,name='gibbsDiagram')
             db.session.add(new_graph)
             db.session.commit()
+
+            rectangle_piper.plot(readydata, unit='mg/L', figname='rectanglePiper'+id, figformat='jpg')
+            img= open('rectanglePiper'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='rectanglePiper')
+            db.session.add(new_graph)
+            db.session.commit()
+
+            durvo.plot(readydata, unit='mg/L', figname='durvoDiagram'+id, figformat='jpg')
+            img= open('durvoDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='durvoDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
+
+            hfed.plot(readydata, unit='mg/L', figname='hfedDiagram'+id, figformat='jpg')
+            img= open('hfedDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='hfedDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
+
+            chadha.plot(readydata, unit='mg/L', figname='chadhaDiagram'+id, figformat='jpg')
+            img= open('chadhaDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='chadhaDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
+
+            color_piper.plot(readydata, unit='mg/L', figname='color_piperDiagram'+id, figformat='jpg')
+            img= open('color_piperDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='color_piperDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
+
+            schoeller.plot(readydata, unit='mg/L', figname='schoellerDiagram'+id, figformat='jpg')
+            img= open('schoellerDiagram'+id+'.jpg','rb').read()
+            new_graph = Result(project_id=id,image=img ,name='schoellerDiagram')
+            db.session.add(new_graph)
+            db.session.commit()
+            
+            delete()
+
+
             return json.loads(res)
         else:
             return{
@@ -227,12 +299,6 @@ def get_img(id,name):
     if not img:
         return 'Invalid data to generate graph', 404 
      
-
-
-
-
-
-
     # imag_file=f"http://127.0.0.1:5000/2"
     
     return Response(img.image, mimetype=img.name)
@@ -243,3 +309,8 @@ api.add_resource(csv_upload, '/csv/<id>')
 # run app 
 if __name__ == '__main__':
     app.run(debug=True)
+
+def delete():
+    removing_files = glob.glob('C:/Users/tusha/Downloads/Hydrateq-sih-master/Graphs/*.jpg')
+    for i in removing_files:
+        os.remove(i)
