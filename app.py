@@ -15,6 +15,7 @@ from models import Project, db, Samples, CsvLog, Result
 from dataclean import clustering, cleandata
 from Graphs.triangle_piper import piper
 # Configs
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data/test.db'
 api = Api(app)
@@ -25,13 +26,19 @@ app.secret_key = 'shivam'
 basedir = os.path.abspath(os.path.dirname(__file__))
 uploads_path = os.path.join(basedir, 'uploads')
 current_path = os.getcwd()
+
+
 # UPLOAD_FOLDER = ('static/uploads')
 # app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # parse object for create project
+
+
 create_project_parser = reqparse.RequestParser()
 create_project_parser.add_argument("name")
 create_project_parser.add_argument("aqurename")
+
 # parse object for create project
+
 create_sample_parser = reqparse.RequestParser()
 create_sample_parser.add_argument("name")
 create_sample_parser.add_argument("x")
@@ -223,12 +230,13 @@ class csv_upload(Resource):
                 res = df.to_json()
                 return json.loads(res), 200
             except FileNotFoundError:
-                return "Upload your data", 400
+                return "Upload your data", 201
 
     def post(self, id):
         args = csv_parser.parse_args()
         file = args.get("file")
         try:
+           # delete all graph with this id from data databse +file 
             os.remove("file"+str(id)+".csv")
         finally:  
             if file:
@@ -297,8 +305,9 @@ class csv_upload(Resource):
                 return {
                     "message": "no files uploaded"
                 }
-    # def get(self,id):
 
+
+    # def get(self,id):
     #     graph = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
     #     if graph:
     #         return Response(graph.image, mimetype=graph.mimetype)
@@ -311,7 +320,6 @@ def get_img(id, name):
     if not img:
         return 'Invalid data to generate graph', 404
     # imag_file=f"http://127.0.0.1:5000/2"
-
     return Response(img.image, mimetype=img.name)
 
 
@@ -324,8 +332,4 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-def delete():
-    removing_files = glob.glob(
-        'C:/Users/tusha/Downloads/Hydrateq-sih-master/Graphs/*.jpg')
-    for i in removing_files:
-        os.remove(i)
+
