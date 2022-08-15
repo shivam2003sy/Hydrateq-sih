@@ -21,7 +21,7 @@ class Project(db.Model):
 #Sample models
 class Samples(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(50),nullable=False)
     x=db.Column(db.Integer)
     y=db.Column(db.Integer)
     long=db.Column(db.Numeric(precision=8, asdecimal=False, decimal_return_scale=None))
@@ -65,4 +65,11 @@ class Result(db.Model):
     def __repr__(self):
         return '<Result%r>' % self.name
 
+class Analysis(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'),nullable=False)
+    sar=db.Column(db.Float)
+    solNa=db.Column(db.Float)
+    rsc=db.Column(db.Float)
+    wqi=db.Column(db.Float)
 

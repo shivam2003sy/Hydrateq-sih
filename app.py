@@ -13,6 +13,8 @@ from wqchartpy import gibbs,triangle_piper,rectangle_piper,color_piper,durvo,hfe
 from models import Project , db ,Samples , CsvLog , Result
 from dataclean import clustering ,cleandata
 from Graphs.triangle_piper import  piper
+from analysis import analyze
+import csv
 #Configs 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data/test.db'
@@ -218,16 +220,28 @@ class csv_upload(Resource):
         if file:
             file.save(os.path.join(uploads_path ,id+file.filename))
             location= os.path.join(uploads_path ,id+file.filename)
-            csv=CsvLog(location=location,project_id=id)
-            db.session.add(csv)
+            csvlog=CsvLog(location=location,project_id=id)
+            db.session.add(csvlog)
             db.session.commit()
             raw_df = pd.read_csv(location)
             data=cleandata(raw_df)[0]
             res=data.to_json(orient='index')
             readydata = clustering(raw_df)
 
-            
 
+# here the csv file is read 
+            with open('C:/Users/tusha/OneDrive/Documents/GitHub/Hydrateq-sih/uploads/{id}sample.csv', mode='r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                line_count = 1
+                for row in csv_reader:
+                    # if line_count == 0:
+                    #     print(f'Column names are {", ".join(row)}')
+                    #     line_count += 1
+                    
+                    print(f'\t{row["Sample"]} works in the {row["Label"]} department, and was born in {row["Sample"]}.')
+                    line_count += 1
+                print(f'Processed {line_count} lines.')
+            
 
 
             piper(readydata, unit='mg/L', figname='trianglePiperdiagram'+id, figformat='jpg')
@@ -314,3 +328,9 @@ def delete():
     removing_files = glob.glob('C:/Users/tusha/Downloads/Hydrateq-sih-master/Graphs/*.jpg')
     for i in removing_files:
         os.remove(i)
+
+
+@app.route("/analysis")
+def analysis(id):
+    analyze(id)
+    return "Success",400
