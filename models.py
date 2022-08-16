@@ -66,3 +66,11 @@ class Result(db.Model):
         return '<Result%r>' % self.name
 
 
+#Analysis
+class Analysis(db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'),nullable=False)
+    sar=db.Column(db.Float)
+    solNa=db.Column(db.Float)
+    rsc=db.Column(db.Float)
+    wqi=db.Column(db.Float)
