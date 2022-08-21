@@ -1,5 +1,6 @@
 # Package imports
 import glob
+
 from random import sample
 from typing import final
 from flask import Flask, Response
@@ -18,7 +19,7 @@ import csv
 from models import Analysis, Project, db, Samples, CsvLog, Result
 from dataclean import clustering, cleandata
 from Graphs.triangle_piper import piper
-from analysis import feed , analyze
+
 # Configs
 
 app = Flask(__name__)
@@ -116,9 +117,7 @@ class WaterData(Resource):
             "id": new.id,
             "name": new.name
         }
-
 # show single project and create a new sample inside that project
-
 class Projectsingle(Resource):
     def get(self, id):
         project = Project.query.get(id)
@@ -131,13 +130,12 @@ class Projectsingle(Resource):
                 "project_description": project.aqurename,
                 "project_samples": {"samples": sample_info}
             }, 200
-
     def post(self, id):
         project = True
         if project:
             args = create_sample_parser.parse_args()
             name = args.get("name")
-            place = args.get("place", None)
+            # place = args.get("place", None)
             project_id = id
             x = args.get("x")
             y = args.get("y")
@@ -194,10 +192,11 @@ class Projectsingle(Resource):
 class Sample(Resource):
     def get(self, id):
         samples = Samples.query.filter_by(project_id= id).all()
+        output=[]
         for sample in samples:
-            return {
+            output.append({
                 "sample_name": sample.name,
-                "sample_description": sample.place,
+                # "sample_description": sample.place,
                 "project_id": sample.project_id,
                 "ph": sample.ph,
                 "x": sample.x,
@@ -223,7 +222,8 @@ class Sample(Resource):
                 "aluminium": sample.aluminium,
                 "Trioxidosilicate": sample.Trioxidosilicate,
                 "Carbondioxide": sample.Carbondioxide
-            }, 200
+            })
+        return output, 200
 class csv_upload(Resource):
     def get(self, id):
         place = CsvLog.query.filter_by(project_id=id).first()
@@ -240,7 +240,24 @@ class csv_upload(Resource):
         file = args.get("file")
         try:
            # delete all graph with this id from data databse +file 
-            os.remove("file"+str(id)+".csv")
+            graph = Result.query.filter_by(project_id=id).all()
+            for g in graph:
+                db.session.delete(g)
+                db.session.commit()
+            # delete all csv log with this id from data databse +file
+            csv_log = CsvLog.query.filter_by(project_id=id).all()
+            for c in csv_log:
+                db.session.delete(c)
+                db.session.commit() 
+            # delete all samples with this id from data databse +file
+            samples = Samples.query.filter_by(project_id=id).all()
+            for s in samples:
+                db.session.delete(s)
+                db.session.commit()
+            try:
+                os.remove("file"+str(id)+".csv")
+            except FileNotFoundError:
+                pass
         finally:  
             if file:
                 file.save(os.path.join(uploads_path, id+file.filename))
@@ -248,62 +265,74 @@ class csv_upload(Resource):
                 csv = CsvLog(location=location, project_id=id)
                 db.session.add(csv)
                 db.session.commit()
-                raw_df = pd.read_csv(location)
-                feed(id)
+                csv = CsvLog.query.filter_by(project_id=id).first()
+                raw_df = pd.read_csv(csv.location)
+                feed(id,csv.location)
                 data = cleandata(raw_df)[0]
                 res = data.to_json(orient='index')
                 readydata = clustering(raw_df)
-                
-                # piper(readydata, unit='mg/L',
-                #     figname='trianglePiperdiagram'+id, figformat='jpg')
-                # img = open('trianglePiperdiagram'+id+'.jpg', 'rb').read()
-                # new_graph = Result(project_id=id, image=img,
-                #                 name='trianglePiperdiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                img = open('dataclean.jpg', 'rb').read()
+                new_graph = Result(project_id=id, image=img,
+                                name='cleandata')
+                db.session.add(new_graph)
+                db.session.commit()
+                os.remove("dataclean.jpg")
+                img = open('clustring.jpg', 'rb').read()
+                new_graph = Result(project_id=id, image=img,
+                                name='clustring')
+                db.session.add(new_graph)
+                db.session.commit()
+                os.remove("clustring.jpg")
+                piper(readydata, unit='mg/L',
+                    figname='trianglePiperdiagram'+id, figformat='jpg')
+                img = open('trianglePiperdiagram'+id+'.jpg', 'rb').read()
+                new_graph = Result(project_id=id, image=img,
+                                name='trianglePiperdiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # gibbs.plot(readydata, unit='mg/L',
-                #         figname='gibbsDiagram'+id, figformat='jpg')
-                # img = open('gibbsDiagram'+id+'.jpg', 'rb').read()
-                # new_graph = Result(project_id=id, image=img, name='gibbsDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                gibbs.plot(readydata, unit='mg/L',
+                        figname='gibbsDiagram'+id, figformat='jpg')
+                img = open('gibbsDiagram'+id+'.jpg', 'rb').read()
+                new_graph = Result(project_id=id, image=img, name='gibbsDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # rectangle_piper.plot(readydata, unit='mg/L', figname='rectanglePiper'+id, figformat='jpg')
-                # img= open('rectanglePiper'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='rectanglePiper')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                rectangle_piper.plot(readydata, unit='mg/L', figname='rectanglePiper'+id, figformat='jpg')
+                img= open('rectanglePiper'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='rectanglePiper')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # durvo.plot(readydata, unit='mg/L', figname='durvoDiagram'+id, figformat='jpg')
-                # img= open('durvoDiagram'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='durvoDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                durvo.plot(readydata, unit='mg/L', figname='durvoDiagram'+id, figformat='jpg')
+                img= open('durvoDiagram'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='durvoDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # hfed.plot(readydata, unit='mg/L', figname='hfedDiagram'+id, figformat='jpg')
-                # img= open('hfedDiagram'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='hfedDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                hfed.plot(readydata, unit='mg/L', figname='hfedDiagram'+id, figformat='jpg')
+                img= open('hfedDiagram'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='hfedDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # chadha.plot(readydata, unit='mg/L', figname='chadhaDiagram'+id, figformat='jpg')
-                # img= open('chadhaDiagram'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='chadhaDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                chadha.plot(readydata, unit='mg/L', figname='chadhaDiagram'+id, figformat='jpg')
+                img= open('chadhaDiagram'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='chadhaDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # color_piper.plot(readydata, unit='mg/L', figname='color_piperDiagram'+id, figformat='jpg')
-                # img= open('color_piperDiagram'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='color_piperDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                color_piper.plot(readydata, unit='mg/L', figname='color_piperDiagram'+id, figformat='jpg')
+                img= open('color_piperDiagram'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='color_piperDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
 
-                # schoeller.plot(readydata, unit='mg/L', figname='schoellerDiagram'+id, figformat='jpg')
-                # img= open('schoellerDiagram'+id+'.jpg','rb').read()
-                # new_graph = Result(project_id=id,image=img ,name='schoellerDiagram')
-                # db.session.add(new_graph)
-                # db.session.commit()
+                schoeller.plot(readydata, unit='mg/L', figname='schoellerDiagram'+id, figformat='jpg')
+                img= open('schoellerDiagram'+id+'.jpg','rb').read()
+                new_graph = Result(project_id=id,image=img ,name='schoellerDiagram')
+                db.session.add(new_graph)
+                db.session.commit()
                 data.to_csv('file'+str(id)+'.csv')
                 return "succes"
             else:
@@ -316,7 +345,6 @@ class csv_upload(Resource):
     #     graph = Result.query.filter_by(project_id=id,name="trianglePiperdiagram").first()
     #     if graph:
     #         return Response(graph.image, mimetype=graph.mimetype)
-
 
 @app.route('/graph/<name>/<int:id>')
 def get_img(id, name):
@@ -374,14 +402,30 @@ class ValueRequired(Resource):
         return output,200
 
 
-
+class WQI(Resource):
+    def get(self,id):
+        analysis = Analysis.query.filter_by(project_id=id).all()
+        output=[]
+        for data in analysis:
+            data={
+                    "sar":data.sar,
+                    "solNa":data.solNa,
+                    "rsc":data.rsc,
+                    "wqi" :data.wqi,
+                }
+            output.append(data)
+        df=pd.DataFrame(output)
+        df.describe()
+        return df.describe().to_dict()
 api.add_resource(WaterData, '/')
 api.add_resource(Projectsingle, '/project/<id>')
 api.add_resource(Sample, '/sample/<id>')
 api.add_resource(csv_upload, '/csv/<id>')
 api.add_resource(SarAnnlysis, '/sar/<id>')
 api.add_resource(ValueRequired, '/na/<id>')
+api.add_resource(WQI, '/wqi/<id>')
 # run app
+from analysis import feed , analyze
 if __name__ == '__main__':
     app.run(debug=True)
 

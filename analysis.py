@@ -1,41 +1,45 @@
 from math import sqrt
+from threading import local
 from models import *
 import pandas as pd
 from dataclean import clustering
 import csv
+def feed(id,location):
+    # raw_df = pd.read_csv("uploads/1sample.csv")
+    # readydata = clustering(raw_df)
 
-raw_df = pd.read_csv("uploads/1sample.csv")
-readydata = clustering(raw_df)
-def feed(id):
-    with open("uploads/"+str(id)+"sample.csv", mode='r') as csv_file:
+    with open(location, mode='r') as csv_file:
                 csv_reader = csv.DictReader(csv_file)
                 line_count = 0
-                for row in csv_reader:
-                    name = "sample"+str(line_count)
-                    project_id = id
-                    x=row["X"]
-                    y=row["Y"]
-                    long=row["Longitude"]
-                    lat=row["Latitude"]
-                    ph=row["pH"]
-                    alk=row["Alk"]
-                    hardness=row["Hardness"]
-                    tds=row["TDS"]
-                    calcium=row["Ca"]
-                    magnesium=row["Mg"]
-                    sodium = row["Na"]
-                    potassiumSodium=row["KNa"]
-                    calcium=row["Cl"]
-                    sulfate=row["SO4"]
-                    bicarbonate =row["HCO3"]
-                    nitrate=row["NO3"]
-                    iron=row["F"]
-                    sample = Samples(name=name,x=x, y=y , long=long, lat=lat ,project_id=project_id, ph=ph, alk=alk, hardness=hardness, tds=tds, magnesium=magnesium, sodium=sodium, potassiumSodium=potassiumSodium, calcium=calcium, sulfate=sulfate, bicarbonate=bicarbonate, nitrate=nitrate, iron=iron)
-                    db.session.add(sample)
-                    db.session.commit()
-                    line_count += 1
-                    if line_count == 2:
-                        break
+                try:
+                    for row in csv_reader:
+                        name = "sample"+str(line_count)
+                        project_id = id
+                        x=row["X"]
+                        y=row["Y"]
+                        long=row["Longitude"]
+                        lat=row["Latitude"]
+                        ph=row["pH"]
+                        alk=row["Alk"]
+                        hardness=row["Hardness"]
+                        tds=row["TDS"]
+                        calcium=row["Ca"]
+                        magnesium=row["Mg"]
+                        sodium = row["Na"]
+                        potassiumSodium=row["KNa"]
+                        calcium=row["Cl"]
+                        sulfate=row["SO4"]
+                        bicarbonate =row["HCO3"]
+                        nitrate=row["NO3"]
+                        iron=row["F"]
+                        sample = Samples(name=name,x=x, y=y , long=long, lat=lat ,project_id=project_id, ph=ph, alk=alk, hardness=hardness, tds=tds, magnesium=magnesium, sodium=sodium, potassiumSodium=potassiumSodium, calcium=calcium, sulfate=sulfate, bicarbonate=bicarbonate, nitrate=nitrate, iron=iron)
+                        db.session.add(sample)
+                        db.session.commit()
+                        line_count += 1
+                        if line_count == 2:
+                            break
+                finally:
+                    csv_file.close()
     return "uploaded"
 def analyze(id):
         datas=Samples.query.filter_by(project_id=id).all()

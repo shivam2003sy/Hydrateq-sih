@@ -41,6 +41,7 @@ def cleandata(raw_df):
 
     X_df = np.log(tmp_df[['pH', 'Ca', 'Mg', 'KNa', 'Cl','SO4','HCO3', 'NO3', 'F']])
 
+
     # Standardization 
     X = X_df.values
     rescaledX = StandardScaler().fit_transform(X)
@@ -48,10 +49,12 @@ def cleandata(raw_df):
     # descriptive.to_csv(r'C:\Users\shiva\OneDrive\Desktop\Hydrateq-backend\descriptivestatistics\file'+project_id+'.csv', index=False)
     Y_df = tmp_df[['ID', 'ShortID', 'SY', 'SM', 'pH', 'Ca', 'Mg', 'KNa', 'Cl','SO4','HCO3', 'NO3', 'F', 'TDS']]
     # print(tmp_df.nunique())
-    plt.clf()
-    sns.heatmap(descriptive.corr(), annot= True, cmap='coolwarm')
     
+    sns.heatmap(descriptive.corr(), annot= True, cmap='coolwarm')
     # plt.show()
+    plt.savefig("dataclean.jpg", format='jpg' ,
+                bbox_inches='tight', dpi=300)
+    plt.clf()
     return (descriptive ,Y_df,rescaledX)
 def clustering(raw_df):
     (descriptive,Y_df,rescaledX) = cleandata(raw_df)
@@ -60,11 +63,10 @@ def clustering(raw_df):
     Z = hierarchy.linkage(rescaledX, method='ward', metric='euclidean')
 
     # Set the location of phenon line
-    max_d = 20  
+    max_d = 20
 
     # Figure settings of the dendrogram
     fig = plt.figure(figsize=(10, 8))
-
 
     # Axis settings
     left, bottom, width, height = 0.1, 0.35, 0.8, 0.35
@@ -88,8 +90,10 @@ def clustering(raw_df):
     ax1.spines['right'].set_linewidth(1.25)
     ax1.text(150, 20.5, '$Phenon$' + ' ' + '$Line$', fontsize=12)
 
+
     # Calculate number of clusters under the linkage distance of max_d
     n_clusters = np.max(np.unique(hierarchy.fcluster(Z, max_d, criterion='distance')))
+
 
     # Calculate the number of samples for each cluster
     cluster_size = [np.sum(hierarchy.fcluster(Z, max_d, criterion='distance')==i + 1) for i in range(n_clusters)]
@@ -100,25 +104,27 @@ def clustering(raw_df):
     ax2.set_xlim(0, n_samples * 10)
     ax2.set_ylim(0, 2)
 
-
     # Dot line to split each cluster 
     cum_cluster_szie = np.cumsum(cluster_size) * 10
     for i in range(n_clusters - 1):
         ax2.plot([cum_cluster_szie[i], cum_cluster_szie[i]], [1.5, 2.0], linestyle='--', color='k', lw=1.5) 
 
-    ax2.set_xticks([])
-    ax2.set_yticks([])
-        
-    ax2.spines['top'].set_color('none')
-    ax2.spines['bottom'].set_color('none')
-    ax2.spines['left'].set_color('none')
-    ax2.spines['right'].set_color('none')
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+            
+        ax2.spines['top'].set_color('none')
+        ax2.spines['bottom'].set_color('none')
+        ax2.spines['left'].set_color('none')
+        ax2.spines['right'].set_color('none')
 
-    ax2.text(0                   + (cum_cluster_szie[0] -                   0) / 2, 1.5, 'C1 \nN=%d' %cluster_size[0], ha='center', va='bottom', fontsize=12)
-    ax2.text(cum_cluster_szie[0] + (cum_cluster_szie[1] - cum_cluster_szie[0]) / 2, 1.5, 'C2 \nN=%d' %cluster_size[1], ha='center', va='bottom', fontsize=12)
-    ax2.text(cum_cluster_szie[1] + (cum_cluster_szie[2] - cum_cluster_szie[1]) / 2, 1.5, 'C3 \nN=%d' %cluster_size[2], ha='center', va='bottom', fontsize=12)
-    ax2.text(cum_cluster_szie[2] + (cum_cluster_szie[3] - cum_cluster_szie[2]) / 2, 1.5, 'C4 \nN=%d' %cluster_size[3], ha='center', va='bottom', fontsize=12)
+        ax2.text(0                   + (cum_cluster_szie[0] -                   0) / 2, 1.5, 'C1 \nN=%d' %cluster_size[0], ha='center', va='bottom', fontsize=12)
+        ax2.text(cum_cluster_szie[0] + (cum_cluster_szie[1] - cum_cluster_szie[0]) / 2, 1.5, 'C2 \nN=%d' %cluster_size[1], ha='center', va='bottom', fontsize=12)
+        ax2.text(cum_cluster_szie[1] + (cum_cluster_szie[2] - cum_cluster_szie[1]) / 2, 1.5, 'C3 \nN=%d' %cluster_size[2], ha='center', va='bottom', fontsize=12)
+        ax2.text(cum_cluster_szie[2] + (cum_cluster_szie[3] - cum_cluster_szie[2]) / 2, 1.5, 'C4 \nN=%d' %cluster_size[3], ha='center', va='bottom', fontsize=12)
+    plt.savefig("clustring.jpg", format='jpg' ,
+                    bbox_inches='tight', dpi=300)
     plt.clf()
+        
     # plt.show()
     Y_df['SCI'] = hierarchy.fcluster(Z, max_d, criterion='distance')
     
@@ -141,7 +147,7 @@ def clustering(raw_df):
     format_df['Ca'] = Y_df['Ca']
     format_df['Mg'] = Y_df['Mg']
     # Since ther are missing values of K concentration,
-    #   we use KNa concentration represent Na and set K concentration to 0
+    # we use KNa concentration represent Na and set K concentration to 0
     format_df['Na'] = Y_df['KNa']              
     format_df['K'] = 0
     format_df['HCO3'] = Y_df['HCO3']
@@ -155,5 +161,5 @@ def clustering(raw_df):
     return (format_df)
 # url ="https://raw.githubusercontent.com/jyangfsu/WQChartPy/main/data/data_Liu_et_al_2021.csv"
 # raw_df = pd.read_csv(url)
-# print(cleandata(raw_df))
+# # print(cleandata(raw_df))
 # print(clustering(raw_df))
